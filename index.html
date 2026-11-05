@@ -1,596 +1,674 @@
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-  <base target="_top">
+
+  <meta charset="UTF-8">
 
   <meta name="viewport"
         content="width=device-width, initial-scale=1">
 
+  <title>QR Check-in Scanner</title>
+
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
   <style>
+
     * {
       box-sizing: border-box;
     }
 
     body {
       margin: 0;
-      padding: 20px 16px;
-      font-family: Arial, sans-serif;
+      padding: 18px;
       background: #f5f5f5;
       color: #202124;
+      font-family: Arial, sans-serif;
       text-align: center;
     }
 
     main {
-      width: 100%;
-      max-width: 480px;
+      max-width: 500px;
       margin: auto;
     }
 
     h1 {
-      font-size: 24px;
-      margin: 10px 0 20px;
+      font-size: 25px;
+      margin: 12px 0;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 15px 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,.07);
     }
 
     #reader {
       width: 100%;
-      min-height: 100px;
-      margin: 16px auto;
+      min-height: 120px;
       overflow: hidden;
-      border-radius: 12px;
-      background: white;
+      border-radius: 10px;
+      background: #eee;
     }
 
-    #result {
-      display: none;
-      padding: 15px;
-      margin: 16px 0;
+    button {
+      width: 100%;
+      min-height: 48px;
+      padding: 12px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 7px;
+      background: #1a73e8;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button.stop {
+      background: #d93025;
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    #status {
+      padding: 14px;
+      margin-top: 14px;
       border-radius: 8px;
+      background: #f1f3f4;
       line-height: 1.5;
       overflow-wrap: anywhere;
+      white-space: pre-line;
     }
 
     .ok {
-      background: #d9f7e3;
+      background: #d9f7e3 !important;
       color: #136c34;
     }
 
     .warn {
-      background: #fff3cd;
+      background: #fff3cd !important;
       color: #7a5b00;
     }
 
     .bad {
-      background: #fde2e1;
+      background: #fde2e1 !important;
       color: #a12622;
     }
 
-    .controls,
-    .manual {
-      margin: 16px 0;
-    }
-
-    input,
-    button {
-      min-height: 46px;
-      padding: 12px;
-      font: inherit;
-      border-radius: 6px;
-    }
-
-    input {
-      width: min(100%, 260px);
-      border: 1px solid #777;
-      background: white;
-    }
-
-    button {
-      margin: 4px;
-      border: none;
-      background: #1a73e8;
-      color: white;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #1558b0;
-    }
-
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    button:focus-visible,
-    input:focus-visible {
-      outline: 3px solid #8ab4f8;
-      outline-offset: 2px;
+    .counter {
+      font-size: 30px;
+      font-weight: bold;
+      margin: 10px;
+      color: #1a73e8;
     }
 
     .help {
-      color: #5f6368;
-      font-size: 14px;
+      color: #777;
+      font-size: 13px;
       line-height: 1.5;
     }
 
-    .hidden {
-      display: none !important;
-    }
   </style>
+
 </head>
 
 <body>
 
 <main>
 
-  <h1>Check-in Scanner</h1>
+  <h1>QR Check-in Scanner</h1>
 
-  <div class="controls">
-
-    <button id="startButton"
-            type="button"
-            onclick="startScanner()">
-      Start Camera
-    </button>
-
-    <button id="stopButton"
-            type="button"
-            onclick="stopScanner()"
-            hidden>
-      Stop Camera
-    </button>
-
-  </div>
-
-  <div id="reader"
-       aria-label="QR code camera view">
-  </div>
-
-  <div id="result"
-       role="status"
-       aria-live="polite">
-  </div>
-
-  <section class="manual">
-
-    <p><strong>Manual Check-in</strong></p>
-
-    <p>Camera not working? Enter the Registration ID below.</p>
-
-    <input
-      id="manualId"
-      type="text"
-      placeholder="REG-XXXXXXXX"
-      autocomplete="off"
-      autocapitalize="characters">
-
-    <br>
-
-    <button id="manualButton"
-            type="button"
-            onclick="submitManualId()">
-      Check In
-    </button>
-
-  </section>
-
-  <p class="help">
-    Open the deployed HTTPS web app URL ending in /exec.
-    Allow camera access when prompted.
+  <p class="subtitle">
+    Continuous Registration Scanning
   </p>
+
+
+  <!-- CAMERA -->
+
+  <div class="card">
+
+    <div id="reader"></div>
+
+    <button
+      id="startButton"
+      type="button"
+      onclick="startScanner()">
+
+      Start Camera
+
+    </button>
+
+    <button
+      id="stopButton"
+      class="stop"
+      type="button"
+      onclick="stopScanner()"
+      hidden>
+
+      Stop Camera
+
+    </button>
+
+    <div id="status">
+      Checking scanner session...
+    </div>
+
+  </div>
+
+
+  <!-- SCAN COUNTER -->
+
+  <div class="card">
+
+    <p>Successful QR scans sent</p>
+
+    <div class="counter" id="scanCount">
+      0
+    </div>
+
+    <p class="help">
+      Keep this page open while checking in participants.
+      The camera will remain active after each scan.
+    </p>
+
+  </div>
 
 </main>
 
+
 <script>
 
-  var scanner = null;
-  var scannerRunning = false;
-  var requestInProgress = false;
-  var lastScannedId = '';
+// ==================================================
+// 1. SESSION CONFIGURATION
+// ==================================================
 
-  function showResult(kind, message) {
+const SCANNER_TOKEN =
+  new URLSearchParams(window.location.search)
+    .get('token');
 
-    var result = document.getElementById('result');
 
-    result.className = kind;
-    result.textContent = message;
-    result.style.display = 'block';
+// ==================================================
+// 2. VARIABLES
+// ==================================================
 
-  }
+let scanner = null;
 
-  function setCameraButtons(isRunning, isLoading) {
+let scannerRunning = false;
 
-    document.getElementById('startButton').disabled =
-      isRunning || isLoading;
+let starting = false;
 
-    document.getElementById('stopButton').hidden =
-      !isRunning;
+let stopping = false;
 
-    document.getElementById('stopButton').disabled =
-      isLoading;
+let scanCount = 0;
 
-  }
+const recentScans = new Map();
 
-  function errorMessage(error) {
 
-    if (!error) {
-      return 'Unknown error.';
-    }
+// ==================================================
+// 3. DISPLAY STATUS
+// ==================================================
 
-    return error.message || String(error);
+function showStatus(type, message) {
 
-  }
+  const status = document.getElementById('status');
 
-  function isPermissionError(error) {
+  status.className = type;
 
-    var message = errorMessage(error).toLowerCase();
+  status.textContent = message;
 
-    return message.includes('notallowederror') ||
-           message.includes('permission denied') ||
-           message.includes('permission');
+}
 
-  }
 
-  function startScanner() {
+// ==================================================
+// 4. COMMUNICATE WITH APPS SCRIPT
+// ==================================================
 
-    if (scannerRunning || scanner) {
-      return;
-    }
+function sendToMain(data) {
 
-    if (typeof Html5Qrcode === 'undefined') {
+  if (!window.opener || window.opener.closed) {
 
-      showResult(
-        'bad',
-        'QR scanner library failed to load. Check your internet connection.'
-      );
-
-      return;
-    }
-
-    if (!window.isSecureContext) {
-
-      showResult(
-        'bad',
-        'Camera access requires a secure HTTPS connection. Open your deployed Apps Script /exec URL.'
-      );
-
-      return;
-    }
-
-    setCameraButtons(false, true);
-
-    showResult(
-      'warn',
-      'Requesting camera permission...'
+    showStatus(
+      'bad',
+      'Main check-in dashboard is not connected. Keep the original Apps Script page open and reopen this scanner.'
     );
 
-    startWithCamera_({ facingMode: 'environment' })
-
-      .then(function() {
-
-        showResult(
-          'ok',
-          'Camera connected! Point it at a registration QR code.'
-        );
-
-      })
-
-      .catch(function(rearError) {
-
-        if (isPermissionError(rearError)) {
-
-          scanner = null;
-          scannerRunning = false;
-
-          setCameraButtons(false, false);
-
-          showResult(
-            'bad',
-            'Camera permission denied. Open your browser site settings, allow camera access, reload this page, and try again. You can also use manual check-in.'
-          );
-
-          return;
-        }
-
-        startWithCamera_({ facingMode: 'user' })
-
-          .then(function() {
-
-            showResult(
-              'ok',
-              'Front camera connected! Point it at a registration QR code.'
-            );
-
-          })
-
-          .catch(function(frontError) {
-
-            scanner = null;
-            scannerRunning = false;
-
-            setCameraButtons(false, false);
-
-            showResult(
-              'bad',
-              'Unable to start camera. ' +
-              errorMessage(frontError) +
-              '. Please check browser camera permissions or use manual check-in.'
-            );
-
-          });
-
-      });
+    return false;
 
   }
 
-  function startWithCamera_(cameraConstraint) {
+  try {
 
-    if (scanner) {
-      clearScanner_();
-    }
+    window.opener.postMessage({
 
+      ...data,
+
+      token: SCANNER_TOKEN
+
+    }, '*');
+
+    return true;
+
+  } catch (error) {
+
+    showStatus(
+      'bad',
+      'Connection error: ' + error.message
+    );
+
+    return false;
+
+  }
+
+}
+
+
+// ==================================================
+// 5. INITIALIZE SESSION
+// ==================================================
+
+function initializeScanner() {
+
+  if (!SCANNER_TOKEN) {
+
+    showStatus(
+      'bad',
+      'Invalid scanner session. Please open this scanner using the Open QR Scanner button in your Apps Script dashboard.'
+    );
+
+    document.getElementById('startButton').disabled = true;
+
+    return;
+
+  }
+
+  if (!window.opener || window.opener.closed) {
+
+    showStatus(
+      'bad',
+      'Main check-in page not detected. Keep the original dashboard open and reopen the scanner.'
+    );
+
+    document.getElementById('startButton').disabled = true;
+
+    return;
+
+  }
+
+  const connected = sendToMain({
+
+    type: 'SCANNER_READY'
+
+  });
+
+  if (connected) {
+
+    showStatus(
+      'ok',
+      'Scanner connected successfully. Press Start Camera.'
+    );
+
+  }
+
+}
+
+
+// ==================================================
+// 6. START CAMERA
+// ==================================================
+
+async function startScanner() {
+
+  if (scannerRunning || starting || stopping) {
+    return;
+  }
+
+  if (!SCANNER_TOKEN ||
+      !window.opener ||
+      window.opener.closed) {
+
+    initializeScanner();
+
+    return;
+
+  }
+
+  if (typeof Html5Qrcode === 'undefined') {
+
+    showStatus(
+      'bad',
+      'QR scanner library failed to load. Check your internet connection.'
+    );
+
+    return;
+
+  }
+
+  if (
+    !window.isSecureContext ||
+    !navigator.mediaDevices ||
+    !navigator.mediaDevices.getUserMedia
+  ) {
+
+    showStatus(
+      'bad',
+      'Camera access requires HTTPS and a supported browser. Open your published GitHub Pages URL in Chrome or Safari.'
+    );
+
+    return;
+
+  }
+
+  starting = true;
+
+  document.getElementById('startButton').disabled = true;
+
+  showStatus(
+    'warn',
+    'Requesting camera access...'
+  );
+
+  try {
+
+    const config = {
+
+      fps: 10,
+
+      qrbox: function(width, height) {
+
+        const size = Math.floor(
+          Math.min(width, height) * 0.72
+        );
+
+        const bounded = Math.min(
+          Math.max(size, 150),
+          300
+        );
+
+        return {
+          width: bounded,
+          height: bounded
+        };
+
+      }
+
+    };
+
+
+    // First attempt: rear camera.
     scanner = new Html5Qrcode('reader');
 
-    var activeScanner = scanner;
+    try {
 
-    return activeScanner.start(
+      await scanner.start(
+        { facingMode: 'environment' },
+        config,
+        onQrDetected,
+        function() {}
+      );
 
-      cameraConstraint,
+    } catch (rearError) {
 
-      {
-        fps: 10,
+      // Clean up failed first attempt.
+      try {
+        scanner.clear();
+      } catch (e) {}
 
-        qrbox: function(width, height) {
+      scanner = null;
 
-          var size = Math.floor(
-            Math.min(width, height) * 0.7
+      // Second attempt: available cameras.
+      const cameras = await Html5Qrcode.getCameras();
+
+      if (!cameras || cameras.length === 0) {
+
+        throw rearError;
+
+      }
+
+      const preferredCamera =
+        cameras.find(function(camera) {
+
+          return /back|rear|environment/i.test(
+            camera.label
           );
 
-          size = Math.max(150, Math.min(size, 300));
+        }) || cameras[cameras.length - 1];
 
-          return {
-            width: size,
-            height: size
-          };
 
-        }
+      scanner = new Html5Qrcode('reader');
 
-      },
+      await scanner.start(
+        preferredCamera.id,
+        config,
+        onQrDetected,
+        function() {}
+      );
 
-      function(decodedText) {
+    }
 
-        if (!requestInProgress &&
-            decodedText !== lastScannedId) {
 
-          lastScannedId = decodedText;
+    scannerRunning = true;
 
-          submitId(decodedText);
+    document.getElementById('startButton').disabled = true;
 
-        }
+    document.getElementById('stopButton').hidden = false;
 
-      },
+    showStatus(
+      'ok',
+      'Camera active! Point it at a registration QR code.'
+    );
 
-      function() {
-        // No QR code detected.
-      }
+    sendToMain({
 
-    ).then(function() {
+      type: 'SCANNER_STATUS',
 
-      scannerRunning = true;
-
-      setCameraButtons(true, false);
-
-    }).catch(function(error) {
-
-      if (scanner === activeScanner) {
-        scanner = null;
-      }
-
-      try {
-        activeScanner.clear();
-      } catch (e) {
-        // Ignore cleanup errors.
-      }
-
-      throw error;
+      message: 'Camera active and ready for scanning.'
 
     });
 
-  }
 
-  function stopScanner() {
+  } catch (error) {
 
-    if (!scanner) {
-      return;
-    }
+    if (scanner) {
 
-    var activeScanner = scanner;
+      try {
+        scanner.clear();
+      } catch (e) {}
 
-    setCameraButtons(true, true);
-
-    if (!scannerRunning) {
-      return;
-    }
-
-    activeScanner.stop()
-
-      .then(function() {
-
-        try {
-          activeScanner.clear();
-        } catch (e) {
-          // Ignore cleanup errors.
-        }
-
-        if (scanner === activeScanner) {
-          scanner = null;
-        }
-
-        scannerRunning = false;
-
-        setCameraButtons(false, false);
-
-        showResult(
-          'warn',
-          'Camera stopped.'
-        );
-
-      })
-
-      .catch(function(error) {
-
-        scanner = null;
-        scannerRunning = false;
-
-        setCameraButtons(false, false);
-
-        showResult(
-          'bad',
-          'Could not stop camera: ' +
-          errorMessage(error)
-        );
-
-      });
-
-  }
-
-  function clearScanner_() {
-
-    if (!scanner) {
-      return;
-    }
-
-    try {
-      scanner.clear();
-    } catch (error) {
-      // Ignore cleanup errors.
     }
 
     scanner = null;
+
     scannerRunning = false;
 
-  }
+    let errorName = error && error.name
+      ? error.name + ': '
+      : '';
 
-  function submitManualId() {
+    let errorText = error && error.message
+      ? error.message
+      : String(error);
 
-    var input = document.getElementById('manualId');
-
-    var id = input.value.trim();
-
-    if (!id) {
-
-      showResult(
-        'warn',
-        'Please enter a Registration ID.'
-      );
-
-      input.focus();
-
-      return;
-    }
-
-    submitId(id);
-
-  }
-
-  function submitId(rawId) {
-
-    var id = String(rawId || '').trim();
-
-    if (requestInProgress || !id) {
-      return;
-    }
-
-    requestInProgress = true;
-
-    document.getElementById('manualButton').disabled = true;
-
-    showResult(
-      'warn',
-      'Checking registration...'
+    showStatus(
+      'bad',
+      'Camera startup failed: ' +
+      errorName +
+      errorText +
+      '\n\nCheck camera permission for your GitHub Pages website.'
     );
 
-    google.script.run
+  } finally {
 
-      .withSuccessHandler(function(response) {
+    starting = false;
 
-        requestInProgress = false;
-
-        document.getElementById('manualButton').disabled = false;
-
-        if (!response) {
-
-          showResult(
-            'bad',
-            'The server returned no result.'
-          );
-
-          return;
-        }
-
-        var name = response.name
-          ? response.name + ': '
-          : '';
-
-        var resultClass = response.ok
-          ? 'ok'
-          : response.duplicate
-            ? 'warn'
-            : 'bad';
-
-        showResult(
-          resultClass,
-          name + response.message
-        );
-
-        if (response.ok || response.duplicate) {
-
-          document.getElementById('manualId').value = '';
-
-          // Keep the same QR code from being processed repeatedly.
-          if (response.ok) {
-            lastScannedId = id;
-          }
-
-        } else {
-
-          lastScannedId = '';
-
-        }
-
-      })
-
-      .withFailureHandler(function(error) {
-
-        requestInProgress = false;
-
-        document.getElementById('manualButton').disabled = false;
-
-        lastScannedId = '';
-
-        showResult(
-          'bad',
-          'Check-in failed: ' + errorMessage(error)
-        );
-
-      })
-
-      .checkIn(id);
+    document.getElementById('startButton').disabled =
+      scannerRunning;
 
   }
 
-  document.getElementById('manualId')
-    .addEventListener('keydown', function(event) {
+}
 
-      if (event.key === 'Enter') {
-        submitManualId();
-      }
 
-    });
+// ==================================================
+// 7. DETECT QR CODE
+// ==================================================
+
+function onQrDetected(decodedText) {
+
+  const id = String(decodedText || '').trim();
+
+  if (!id) {
+    return;
+  }
+
+  const now = Date.now();
+
+  const previousScan = recentScans.get(id) || 0;
+
+  // Prevent repeated scans within four seconds.
+  if (now - previousScan < 4000) {
+    return;
+  }
+
+  recentScans.set(id, now);
+
+  // Remove old scan records.
+  for (const [key, time] of recentScans.entries()) {
+
+    if (now - time > 30000) {
+
+      recentScans.delete(key);
+
+    }
+
+  }
+
+  sendQrCode(id);
+
+}
+
+
+// ==================================================
+// 8. SEND QR CODE TO APPS SCRIPT
+// ==================================================
+
+function sendQrCode(id) {
+
+  const sent = sendToMain({
+
+    type: 'CHECKIN_QR',
+
+    id: id
+
+  });
+
+  if (!sent) {
+    return;
+  }
+
+  scanCount++;
+
+  document.getElementById('scanCount').textContent =
+    scanCount;
+
+  showStatus(
+    'ok',
+    'QR code scanned: ' + id +
+    '\n\nCheck-in request sent. Ready for the next participant!'
+  );
+
+}
+
+
+// ==================================================
+// 9. STOP CAMERA
+// ==================================================
+
+async function stopScanner() {
+
+  if (!scanner || !scannerRunning || stopping) {
+    return;
+  }
+
+  stopping = true;
+
+  const activeScanner = scanner;
+
+  document.getElementById('stopButton').disabled = true;
+
+  try {
+
+    await activeScanner.stop();
+
+    activeScanner.clear();
+
+    scanner = null;
+
+    scannerRunning = false;
+
+    document.getElementById('stopButton').hidden = true;
+
+    showStatus(
+      'warn',
+      'Camera stopped.'
+    );
+
+  } catch (error) {
+
+    showStatus(
+      'bad',
+      'Unable to stop camera: ' + error.message
+    );
+
+  } finally {
+
+    stopping = false;
+
+    document.getElementById('stopButton').disabled = false;
+
+    document.getElementById('startButton').disabled =
+      scannerRunning;
+
+  }
+
+}
+
+
+// ==================================================
+// 10. CLEANUP WHEN LEAVING PAGE
+// ==================================================
+
+window.addEventListener('pagehide', function() {
+
+  if (scanner && scannerRunning) {
+
+    scanner.stop().catch(function() {});
+
+  }
+
+});
+
+
+// ==================================================
+// 11. INITIALIZE
+// ==================================================
+
+initializeScanner();
 
 </script>
 
 </body>
+
 </html>
