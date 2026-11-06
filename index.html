@@ -121,6 +121,79 @@
       line-height: 1.5;
     }
 
+    
+.result-card {
+  margin-top: 16px;
+  padding: 22px 14px;
+  border-radius: 12px;
+  line-height: 1.5;
+  animation: resultAppear .25s ease;
+}
+
+.result-card[hidden] {
+  display: none;
+}
+
+.result-card.success {
+  background: #d9f7e3;
+  color: #136c34;
+  border: 2px solid #16a34a;
+}
+
+.result-card.duplicate {
+  background: #fff3cd;
+  color: #7a5b00;
+  border: 2px solid #e0a800;
+}
+
+.result-card.notfound,
+.result-card.error {
+  background: #fde2e1;
+  color: #a12622;
+  border: 2px solid #d93025;
+}
+
+.result-icon {
+  font-size: 48px;
+  font-weight: bold;
+}
+
+.result-card h2 {
+  font-size: 21px;
+  margin: 8px 0;
+}
+
+.result-name {
+  font-size: 22px;
+  font-weight: bold;
+  margin: 12px 0;
+  overflow-wrap: anywhere;
+}
+
+.result-id {
+  font-size: 13px;
+  margin-top: 12px;
+  overflow-wrap: anywhere;
+}
+
+.result-time {
+  font-size: 13px;
+  margin-top: 5px;
+}
+
+@keyframes resultAppear {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
   </style>
 
 </head>
@@ -165,6 +238,24 @@
     <div id="status">
       Checking scanner session...
     </div>
+
+    
+<div id="checkinResult" class="result-card" hidden>
+
+  <div id="resultIcon" class="result-icon">✓</div>
+
+  <h2 id="resultTitle">CHECK-IN SUCCESSFUL</h2>
+
+  <div id="resultName" class="result-name"></div>
+
+  <p id="resultMessage"></p>
+
+  <div id="resultId" class="result-id"></div>
+
+  <div id="resultTime" class="result-time"></div>
+
+</div>
+
 
   </div>
 
@@ -591,6 +682,78 @@ function sendQrCode(id) {
 
 }
 
+  
+function displayCheckInResult(data) {
+
+  const response = data.result || {};
+
+  const card = document.getElementById('checkinResult');
+
+  const icon = document.getElementById('resultIcon');
+
+  const title = document.getElementById('resultTitle');
+
+  const name = document.getElementById('resultName');
+
+  const message = document.getElementById('resultMessage');
+
+  const id = document.getElementById('resultId');
+
+  const time = document.getElementById('resultTime');
+
+  card.className = 'result-card';
+
+  if (response.ok) {
+
+    card.classList.add('success');
+
+    icon.textContent = '✓';
+
+    title.textContent = 'CHECK-IN SUCCESSFUL';
+
+  } else if (response.duplicate) {
+
+    card.classList.add('duplicate');
+
+    icon.textContent = '⚠';
+
+    title.textContent = 'ALREADY CHECKED IN';
+
+  } else if (response.notFound) {
+
+    card.classList.add('notfound');
+
+    icon.textContent = '✕';
+
+    title.textContent = 'REGISTRATION NOT FOUND';
+
+  } else {
+
+    card.classList.add('error');
+
+    icon.textContent = '✕';
+
+    title.textContent = 'CHECK-IN ERROR';
+
+  }
+
+  name.textContent = response.name || 'Participant';
+
+  message.textContent =
+    response.message || 'No additional information.';
+
+  id.textContent =
+    'Registration ID: ' + (data.id || '');
+
+  time.textContent = response.checkInTime
+    ? 'Check-in time: ' + response.checkInTime
+    : '';
+
+  card.hidden = false;
+
+}
+
+
 
 // ==================================================
 // 9. STOP CAMERA
@@ -659,6 +822,39 @@ window.addEventListener('pagehide', function() {
   }
 
 });
+
+  
+window.addEventListener('message', function(event) {
+
+  // Accept messages only from the original dashboard window.
+  if (!window.opener || event.source !== window.opener) {
+    return;
+  }
+
+  const data = event.data;
+
+  if (!data || typeof data !== 'object') {
+    return;
+  }
+
+  // Validate the scanner session token.
+  if (data.token !== SCANNER_TOKEN) {
+    return;
+  }
+
+  if (data.type === 'CHECKIN_RESULT') {
+
+    displayCheckInResult(data);
+
+    showStatus(
+      'ok',
+      'Check-in processed. Camera remains active and ready for the next participant.'
+    );
+
+  }
+
+});
+
 
 
 // ==================================================
